@@ -1,19 +1,39 @@
-def getTime(distancia, linhaatual, noOrigem, noDestino):
+def getTime(distancia, linhaatual, noDestino, hora_minuto):
   
   t1 = distancia / 40
 
-  if linhaatual in noDestino.linha: t2 = 4
-  else: t2 = 0
+  linhas = {
+    'G': 20,
+    'B': 15,
+    'Y': 7,
+    'R': 10}
 
-  t3 =  None
-  
-  return t1+ t2+ t3
+  if hora_minuto + linhas[linhaatual] > 1440:
+    t2 = 240 + (1440 - hora_minuto)
+
+  else:  
+    t_espera = hora_minuto  - 240
+    if (t_espera < 0) :
+      t2 = abs(t_espera)
+    elif (t_espera == 0):
+      t2 = 0
+    else:
+      x = t_espera % linhas[linhaatual]
+      t2 = 0
+      if x != 0:
+        t2 = linhas[linhaatual] - x
+
+    if linhaatual not in noDestino.linha:
+      if t2 < 4:
+        t2 = linhas[linhaatual] - (4 - t2)
+
+  return t1 + t2
 
 class Node:
   def __init__(self, label, linha):
     self.label = label
     self.nodesAdj = {}
-    self.linha
+    self.linha = linha
 
   def __repr__ (self):
         return self.label
@@ -69,20 +89,20 @@ class Graph:
        
 graph = Graph()
 
-graph.addNode("E1", ['azul'])
-graph.addNode("E2", ['azul', 'amarelo'])
-graph.addNode("E3", ['azul', 'vermelho'])
-graph.addNode("E4", ['azul', 'verde'])
-graph.addNode("E5",['azul', 'amarelo'])
-graph.addNode("E6", ['azul'])
-graph.addNode("E7", ['amarelo'])
-graph.addNode("E8", ['verde', 'amarelo'])
-graph.addNode("E9", ['vermelho', 'amarelo'])
-graph.addNode("E10", ['amarelo'])
-graph.addNode("E11", ['vermelho'])
-graph.addNode("E12", ['verde'])
-graph.addNode("E13", ['verde', 'vermelho'])
-graph.addNode("E14", ['verde'])
+graph.addNode("E1", ['B'])
+graph.addNode("E2", ['B', 'Y'])
+graph.addNode("E3", ['B', 'R'])
+graph.addNode("E4", ['B', 'G'])
+graph.addNode("E5", ['B', 'Y'])
+graph.addNode("E6", ['B'])
+graph.addNode("E7", ['Y'])
+graph.addNode("E8", ['G', 'Y'])
+graph.addNode("E9", ['R', 'Y'])
+graph.addNode("E10", ['Y'])
+graph.addNode("E11", ['R'])
+graph.addNode("E12", ['G'])
+graph.addNode("E13", ['G', 'R'])
+graph.addNode("E14", ['G'])
 
 graph.addEdge("E1","E2")
 
