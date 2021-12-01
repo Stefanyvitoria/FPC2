@@ -13,4 +13,4 @@
 
 # graph.printGraph() 
 
-print(460%20)
+print(min(2,5,2))
