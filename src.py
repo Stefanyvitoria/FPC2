@@ -1,11 +1,11 @@
 from grafo import Graph, graph
 
 
-def getTime(distancia, linhaatual, noOrigem, noDestino, hora_minuto):
+def getTime(distancia, linhamantida, noOrigem, noDestino, hora_minuto):
 
   if noDestino.label == noOrigem.label:
     return 0
-  
+
   t1 = distancia
 
   linhas = {
@@ -14,24 +14,28 @@ def getTime(distancia, linhaatual, noOrigem, noDestino, hora_minuto):
     'Y': 7,
     'R': 10}
 
-  if hora_minuto + linhas[linhaatual] > 1440:
+  for l in noOrigem.linha:
+      if l in noDestino.linha:
+        linhaatual = l
+
+  if hora_minuto + linhas[linhaatual] > 1440: #se começou antes das 04:00
     t2 = 240 + (1440 - hora_minuto)
 
-  else:  
+  else:
     t_espera = hora_minuto  - 240
-    if (t_espera < 0) :
+    if (t_espera < 0) : #chega antes as 04h
       t2 = abs(t_espera)
-    elif (t_espera == 0):
+    elif (t_espera == 0): #chega exatamente as 04h
       t2 = 0
-    else:
+    else: #chega depois das 4h
       x = t_espera % linhas[linhaatual]
       t2 = 0
       if x != 0:
         t2 = linhas[linhaatual] - x
 
-    if linhaatual not in noDestino.linha:
+    if linhamantida not in noDestino.linha:
       if t2 < 4:
-        t2 = linhas[linhaatual] - (4 - t2)
+        t2 = linhas[linhaatual] - (4 - t2) + 4
 
   return t1 + t2
 
@@ -71,53 +75,67 @@ distancia_real = [
 ]
 
 
-def f_custo( no1, no_destino, no2, hora, graph):
+def f_custo( no1_destino, no_destino_final, no2_origem, hora, graph):
 
   if graph.linha_atual == None:
-    for l in no1.linha:
-      if l in no2.linha:
+    for l in no2_origem.linha:
+      if l in no1_destino.linha:
         graph.linha_atual = l
-  
-  i= int(no1.label[1:])-1
-  j = int(no_destino.label[1:])-1
+
+  i= int(no1_destino.label[1:])-1
+  j = int(no_destino_final.label[1:])-1
   h = distancia_heuristica[i][j]
 
-  g = getTime(distancia_real[i][int(no2.label[1:])-1], graph.linha_atual, no1, no2, hora)
+  g = getTime(distancia_real[i][int(no2_origem.label[1:])-1], graph.linha_atual,  no2_origem, no1_destino, hora)
   return  (g, h + g)
 
 def a_star_algorithm(no_start, no_end, hora_start, graph):
   caminho = [] #inicializa o caminho
 
   hora = hora_start[0]*60 + hora_start[1] #converte hr inicial para minutos
-  fCusto = f_custo(no1=no_start, no2=no_start, no_destino=no_end, hora=hora_start, graph=graph) # calcula o tempo real e o temporeal + euristico
+  fCusto = f_custo(no1_destino=no_start, no2_origem=no_start, no_destino_final=no_end, hora=hora_start, graph=graph) # calcula o tempo real e o temporeal + euristico
   no_start.pi='origem'
   fronteira = [[no_start, fCusto]]
-  hora += fCusto[0] # a soma das arestas
   no_atual = None
-  
+
   while len(fronteira) > 0:
 
-    no_atual = min(fronteira, key=(lambda x: x[1][-1])) # pega o primeiro nó da fronteira
+    no_atual = min(fronteira, key=(lambda x: x[1][-1])) # pega o nó mais proximo do destino
     fronteira = [node for node in fronteira if node != no_atual]
+    hora += no_atual[1][0] #adiciona horário atual do nó
 
     for node in graph.adjNode(no_atual[0].label):
       node = graph.getNode(node) #um no adj ao atual
-      if node.pi == None:
+      if node.pi == None: #verifica se o nó ja foi mapeado
         graph.setPi(node.label, no_atual[0])
-        fCusto = f_custo(no2=no_atual[0], no1=node, no_destino=no_end, hora=hora, graph=graph)
-        hora += fCusto[0]
-        fronteira.append([node, fCusto])
+        fCusto = f_custo(no2_origem=no_atual[0], no1_destino=node, no_destino_final=no_end, hora=hora, graph=graph)
+        fronteira.append([node, fCusto]) #adiciona o nó na fronteira
       else:
-        if no_atual[0].pi.label not in caminho:
+        if no_atual[0].pi.label not in caminho: #verifica se o nó atual ja está no caminho
           caminho.append(no_atual[0].pi.label)
-          print(hora)
-          print(no_atual)
-    
-    if (no_atual[0].label == no_end.label):
-      caminho.append(no_atual[0].label)
+
+          if no_atual[0].label != no_start.label: 
+            for l in graph.getNode(caminho[-1]).linha:
+              if l in no_atual[0].linha:
+                graph.linha_atual = l
+
+        if node.label not in caminho: 
+          fCusto = f_custo(no2_origem=no_atual[0], no1_destino=node, no_destino_final=no_end, hora=hora, graph=graph)
+          fronteira.append([node, fCusto])
+
+    if (no_atual[0].label == no_end.label): #verifica se o nó atual é o destino
+      caminho.append(no_atual[0].label) #adiciona o nó no caminho
       break
+  print("\nCaminho:")
+  [print('->', e, end='') for e in caminho]
 
-  return caminho
 
+if __name__ == '__main__':
+  print("Insira a Estação de Origem: \nEx (E1)")
+  estacaoOrigem = input().upper()
+  print("Insira a Estação de Destino: \nEx (E1)")
+  estacaoDestino = input().upper()
+  print("Insira a Hora de partida: \nEx (HH:MM)")
+  hora,minuto = input().split(":")
 
-print(a_star_algorithm(graph.getNode('E3'), graph.getNode("E8"), [4,1], graph ))
+  a_star_algorithm(graph.getNode(estacaoOrigem), graph.getNode(estacaoDestino), [int(hora),int(minuto)], graph )
